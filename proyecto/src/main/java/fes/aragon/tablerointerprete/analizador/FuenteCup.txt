@@ -1,0 +1,89 @@
+package fes.aragon.compilador;
+
+import java_cup.runtime.*;
+import java.io.*;
+
+// Código que se añade a la clase parser generada
+parser code {:
+    public Lexer lex;
+
+    // Constructor opcional para pasar el lexer fácilmente
+    public parser(Lexer lex) {
+        super(lex);
+        this.lex = lex;
+    }
+
+    // Método para manejar errores sintácticos
+    public void syntax_error(Symbol st) {
+        System.out.println("Error sintáctico: Componente <" + st.value + "> no esperado. " +
+                           "Línea " + (lex.getYyline() + 1) +
+                           ", Columna " + (lex.getYycolumn() + 1));
+    }
+
+    // Método para errores irrecuperables
+    public void unrecovered_syntax_error(Symbol st) throws java.lang.Exception {
+        System.out.println("Error sintáctico irrecuperable en la línea " +
+                           (lex.getYyline() + 1) + ", Columna " + (lex.getYycolumn() + 1));
+    }
+:};
+
+/* * Terminales:
+ * Deben coincidir exactamente con los tokens que retorna tu archivo Lexer.flex
+ */
+terminal INICIO, DERECHA, IZQUIERDA, ABAJO, ARRIBA, MOVER, REPITE, PARAR;
+
+/* * Terminales con valor:
+ * NUMERO trae un Integer asociado desde el Lexer (gracias a Integer.parseInt)
+ */
+terminal Integer NUMERO;
+
+/* * No terminales:
+ * Las estructuras de nuestro lenguaje
+ */
+non terminal programa, lista_instrucciones, instruccion;
+
+/* El símbolo inicial de la gramática */
+start with programa;
+
+/* --- Gramática --- */
+
+// Un programa es básicamente una lista de instrucciones
+programa ::= lista_instrucciones;
+
+// Una lista de instrucciones puede ser una sola instrucción, o una lista seguida de otra instrucción (recursividad)
+lista_instrucciones ::= lista_instrucciones instruccion
+                      | instruccion;
+
+// Definición de las reglas para cada comando del juego
+instruccion ::= INICIO NUMERO:x NUMERO:y
+    {:
+        System.out.println("Comando detectado: Posicionar nave en X:" + x + ", Y:" + y);
+    :}
+    | DERECHA
+    {:
+        System.out.println("Comando detectado: Apuntar/Mover a la derecha");
+    :}
+    | IZQUIERDA
+    {:
+        System.out.println("Comando detectado: Apuntar/Mover a la izquierda");
+    :}
+    | ABAJO
+    {:
+        System.out.println("Comando detectado: Apuntar/Mover hacia abajo");
+    :}
+    | ARRIBA
+    {:
+        System.out.println("Comando detectado: Apuntar/Mover hacia arriba");
+    :}
+    | MOVER NUMERO:n
+    {:
+        System.out.println("Comando detectado: Avanzar " + n + " casillas");
+    :}
+    | REPITE NUMERO:n lista_instrucciones PARAR
+    {:
+        System.out.println("Comando detectado: Finaliza bloque de repetición (" + n + " veces)");
+    :}
+    | error
+    {:
+        System.out.println("Recuperando analizador después de un error en la instrucción...");
+    :};
