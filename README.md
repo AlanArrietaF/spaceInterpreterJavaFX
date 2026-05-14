@@ -34,9 +34,9 @@ La arquitectura separa estrictamente el compilador del motor de juego. El parser
 
 1.  Clona este repositorio:
     ```bash
-    git clone [https://github.com/TuUsuario/TuRepositorio.git](https://github.com/TuUsuario/TuRepositorio.git)
+    git clone https://github.com/AlanArrietaF/spaceInterpreterJavaFX
     ```
-2.  Abre el proyecto en tu IDE favorito (IntelliJ IDEA recomendado).
+2.  Abre el proyecto en tu IDE favorito.
 3.  Asegúrate de tener configurado el SDK de Java 17 o superior.
 4.  Recarga el proyecto de Maven para descargar las dependencias de JavaFX.
 5.  Ejecuta la clase principal **`Launcher.java`**.
