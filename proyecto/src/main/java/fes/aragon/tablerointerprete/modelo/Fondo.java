@@ -2,14 +2,33 @@ package fes.aragon.tablerointerprete.modelo;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Random;
 
 import fes.aragon.tablerointerprete.comando.Comando;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.paint.Color; // Importamos Color para pintar a los aliens
 import javafx.stage.Stage;
 
 public class Fondo extends ComponentesJuego {
+
+	// --- NUEVA CLASE INTERNA: ALIEN ---
+	class Alien {
+		int col, row;
+		boolean recolectado;
+
+		public Alien(int col, int row) {
+			this.col = col;
+			this.row = row;
+			this.recolectado = false;
+		}
+	}
+
+	private ArrayList<Alien> aliens = new ArrayList<>();
+	private Random random = new Random();
+
+	// Variables del juego
 	private int yy = 0;
 	private int xx = 0;
 	private Image arribaImg;
@@ -48,6 +67,18 @@ public class Fondo extends ComponentesJuego {
 		this.abajoImg = new Image(stream);
 		this.imagen = derechaImg;
 		this.ventana = ventana;
+
+		// Generamos 5 aliens al azar al abrir el programa
+		generarAliens(5);
+	}
+
+	private void generarAliens(int cantidad) {
+		aliens.clear();
+		for(int i = 0; i < cantidad; i++) {
+			int c = random.nextInt(10); // Columna al azar (0-9)
+			int r = random.nextInt(10); // Fila al azar (0-9)
+			aliens.add(new Alien(c, r));
+		}
 	}
 
 	public void setComandos(ArrayList<Comando> nuevosComandos) {
@@ -66,6 +97,8 @@ public class Fondo extends ComponentesJuego {
 		int coordX = 50;
 		int coordY = 50;
 
+		// 1. Dibujar Cuadrícula
+		graficos.setStroke(Color.BLACK);
 		for (int j = 1; j <= 10; j++) {
 			for (int i = 1; i <= 10; i++) {
 				graficos.strokeRect(coordX, coordY, 50, 50);
@@ -75,11 +108,28 @@ public class Fondo extends ComponentesJuego {
 			coordY += 50;
 		}
 
+		// 2. DIBUJAR LOS ALIENS
+		graficos.setFill(Color.LIMEGREEN); // Color verde para los aliens
+		for(Alien a : aliens) {
+			if(!a.recolectado) {
+				// Calculamos su posición en píxeles (centrado en la casilla de 50x50)
+				int alienX = 60 + (a.col * 50);
+				int alienY = 60 + (a.row * 50);
+
+				// Dibujamos un círculo de 30x30.
+				// (Si luego quieres usar una imagen, usa graficos.drawImage(tuImagenAlien, alienX, alienY, 30, 30);)
+				graficos.fillOval(alienX, alienY, 30, 30);
+			}
+		}
+		graficos.setFill(Color.BLACK); // Regresamos el color a negro para el texto
+
+		// 3. Dibujar la nave
 		if (mostrarNave) {
 			graficos.drawImage(imagen, x, y, ancho, alto);
 			graficos.strokeRect(x, y, ancho, alto);
 		}
 
+		// 4. Dibujar el texto
 		if (!comandos.isEmpty()) {
 			if (indice < comandos.size()) {
 				graficos.strokeText("Ejecutando: " + comandos.get(indice).getAccion(), 100, 40);
@@ -102,10 +152,7 @@ public class Fondo extends ComponentesJuego {
 					break;
 
 				case "mover":
-					// LÓGICA PAC-MAN: Si sobrepasamos el límite (505 o 55),
-					// saltamos 500 pixeles (el ancho/alto total de las 10 casillas)
-					// hacia el lado contrario para dar el efecto de mapa recursivo.
-
+					// LÓGICA PAC-MAN
 					if (arriba) {
 						if (y > yy) {
 							y -= velocidad;
@@ -139,13 +186,29 @@ public class Fondo extends ComponentesJuego {
 						}
 					}
 			}
+
+			// VERIFICADOR DE COLISIONES: Revisa si la nave "pisó" a un alien
+			verificarRecoleccion();
+		}
+	}
+
+	private void verificarRecoleccion() {
+		for(Alien a : aliens) {
+			if(!a.recolectado) {
+				int alienX = 55 + (a.col * 50);
+				int alienY = 55 + (a.row * 50);
+
+				// Si la distancia entre la nave y el alien es muy pequeña, lo recolecta
+				if(Math.abs(x - alienX) < 20 && Math.abs(y - alienY) < 20) {
+					a.recolectado = true;
+				}
+			}
 		}
 	}
 
 	private void ejecutar() {
 		if (indice < comandos.size()) {
 			Comando c = comandos.get(indice);
-			System.out.println("Procesando: " + c.getAccion());
 
 			switch (c.getAccion()) {
 				case "arriba":
@@ -180,7 +243,6 @@ public class Fondo extends ComponentesJuego {
 					break;
 
 				case "inicioY":
-					// Aseguramos el mapa recursivo desde el inicio aplicando el operador Módulo (%)
 					int inicioRealX = tempXx % 10;
 					int inicioRealY = c.getValor() % 10;
 
@@ -213,7 +275,6 @@ public class Fondo extends ComponentesJuego {
 			}
 
 		} else {
-			System.out.println("--- Fin de las instrucciones ---");
 			this.iniciar = false;
 			this.indice = 0;
 		}
@@ -230,6 +291,12 @@ public class Fondo extends ComponentesJuego {
 		moverCuadros = 0;
 		comando = "";
 		arriba = false; abajo = false; derecha = true; izquierda = false;
+
+		// Si el usuario vuelve a presionar "Ejecutar", revivimos a los aliens
+		// para que pueda volver a intentar la misma ruta
+		for(Alien a : aliens) {
+			a.recolectado = false;
+		}
 	}
 
 	@Override
