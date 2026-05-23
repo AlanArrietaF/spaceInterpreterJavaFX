@@ -119,24 +119,26 @@ public class Inicio extends Application {
             }
 
             try {
-                // Instanciamos el compilador pasando el texto de la pantalla
+                // Instanciamos el compilador
                 Lexer lexer = new Lexer(new StringReader(codigo));
                 parser p = new parser(lexer);
                 p.parse();
 
-                // Extraemos la lista de comandos (Camino B)
+                // Extraemos la lista
                 ArrayList<Comando> comandosListos = p.listaComandos;
 
-                // Si todo salió bien, ponemos el texto en verde
-                areaErrores.setStyle("-fx-text-fill: green; -fx-font-family: monospace; -fx-font-weight: bold; -fx-font-size: 14px;");
-                areaErrores.setText("¡Bien hecho! Análisis sin errores sintácticos.\n" +
-                        "Se generaron " + comandosListos.size() + " comandos a ejecutar.");
+                // 1. Quitamos los colores y ponemos un mensaje neutral de inicio
+                areaErrores.setStyle("-fx-font-family: monospace; -fx-font-size: 14px;");
+                areaErrores.setText("Despegando... Analizando ruta.");
+
+                // 2. Le pasamos la consola al Fondo para que nos avise si choca o gana
+                fondo.setConsolaUI(areaErrores);
                 fondo.setComandos(comandosListos);
 
             } catch (Exception e) {
-                // Atrapamos la excepción y mostramos el e.getMessage() en pantalla
-                areaErrores.setStyle("-fx-text-fill: red; -fx-font-family: monospace; -fx-font-weight: bold; -fx-font-size: 14px;");
-                areaErrores.setText("¡Uy! Se encontró un problema en tu código:\n" + e.getMessage());
+                // 3. Si hay error sintáctico, lo decimos amablemente sin color rojo
+                areaErrores.setStyle("-fx-font-family: monospace; -fx-font-size: 14px;");
+                areaErrores.setText("Revisa tu código, parece que hay un pequeño error:\n" + e.getMessage());
             }
         });
     }

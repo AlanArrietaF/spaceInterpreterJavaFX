@@ -6,14 +6,14 @@ import java.util.Random;
 
 import fes.aragon.tablerointerprete.comando.Comando;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.TextArea; // Importante para la consola
 import javafx.scene.image.Image;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.paint.Color; // Importamos Color para pintar a los aliens
+import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 
 public class Fondo extends ComponentesJuego {
 
-	// --- NUEVA CLASE INTERNA: ALIEN ---
 	class Alien {
 		int col, row;
 		boolean recolectado;
@@ -28,7 +28,6 @@ public class Fondo extends ComponentesJuego {
 	private ArrayList<Alien> aliens = new ArrayList<>();
 	private Random random = new Random();
 
-	// Variables del juego
 	private int yy = 0;
 	private int xx = 0;
 	private Image arribaImg;
@@ -39,6 +38,9 @@ public class Fondo extends ComponentesJuego {
 	private Stage ventana;
 
 	private ArrayList<Comando> comandos = new ArrayList<>();
+
+	// --- NUEVA VARIABLE: Referencia a la consola de la interfaz ---
+	private TextArea consolaUI;
 
 	private int ancho = 40;
 	private int alto = 40;
@@ -56,6 +58,9 @@ public class Fondo extends ComponentesJuego {
 	private int tempXx = 0;
 	private boolean mostrarNave = false;
 
+	// --- NUEVA VARIABLE: Bandera de choque ---
+	private boolean chocado = false;
+
 	public Fondo(int x, int y, InputStream imagen, int velocidad, Stage ventana) {
 		super(x, y, imagen, velocidad);
 		this.derechaImg = new Image(imagen);
@@ -68,15 +73,19 @@ public class Fondo extends ComponentesJuego {
 		this.imagen = derechaImg;
 		this.ventana = ventana;
 
-		// Generamos 5 aliens al azar al abrir el programa
 		generarAliens(5);
+	}
+
+	// Método para recibir la consola desde Inicio.java
+	public void setConsolaUI(TextArea consola) {
+		this.consolaUI = consola;
 	}
 
 	private void generarAliens(int cantidad) {
 		aliens.clear();
 		for(int i = 0; i < cantidad; i++) {
-			int c = random.nextInt(10); // Columna al azar (0-9)
-			int r = random.nextInt(10); // Fila al azar (0-9)
+			int c = random.nextInt(10);
+			int r = random.nextInt(10);
 			aliens.add(new Alien(c, r));
 		}
 	}
@@ -91,13 +100,11 @@ public class Fondo extends ComponentesJuego {
 	@Override
 	public void pintar(GraphicsContext graficos) {
 		this.graficos = graficos;
-
 		graficos.clearRect(0, 0, 600, 600);
 
 		int coordX = 50;
 		int coordY = 50;
 
-		// 1. Dibujar Cuadrícula
 		graficos.setStroke(Color.BLACK);
 		for (int j = 1; j <= 10; j++) {
 			for (int i = 1; i <= 10; i++) {
@@ -108,40 +115,25 @@ public class Fondo extends ComponentesJuego {
 			coordY += 50;
 		}
 
-		// 2. DIBUJAR LOS ALIENS
-		graficos.setFill(Color.LIMEGREEN); // Color verde para los aliens
+		graficos.setFill(Color.LIMEGREEN);
 		for(Alien a : aliens) {
 			if(!a.recolectado) {
-				// Calculamos su posición en píxeles (centrado en la casilla de 50x50)
 				int alienX = 60 + (a.col * 50);
 				int alienY = 60 + (a.row * 50);
-
-				// Dibujamos un círculo de 30x30.
-				// (Si luego quieres usar una imagen, usa graficos.drawImage(tuImagenAlien, alienX, alienY, 30, 30);)
 				graficos.fillOval(alienX, alienY, 30, 30);
 			}
 		}
-		graficos.setFill(Color.BLACK); // Regresamos el color a negro para el texto
+		graficos.setFill(Color.BLACK);
 
-		// 3. Dibujar la nave
 		if (mostrarNave) {
 			graficos.drawImage(imagen, x, y, ancho, alto);
 			graficos.strokeRect(x, y, ancho, alto);
-		}
-
-		// 4. Dibujar el texto
-		if (!comandos.isEmpty()) {
-			if (indice < comandos.size()) {
-				graficos.strokeText("Ejecutando: " + comandos.get(indice).getAccion(), 100, 40);
-			} else {
-				graficos.strokeText("¡Recorrido Finalizado!", 100, 40);
-			}
 		}
 	}
 
 	@Override
 	public void logicaCalculos() {
-		if (iniciar) {
+		if (iniciar && !chocado) {
 			switch (this.comando) {
 				case "arriba":
 				case "abajo":
@@ -152,43 +144,43 @@ public class Fondo extends ComponentesJuego {
 					break;
 
 				case "mover":
-					// LÓGICA PAC-MAN
+					// LÓGICA DE MUROS (Se quitó el efecto Pac-Man)
 					if (arriba) {
 						if (y > yy) {
 							y -= velocidad;
-							if (y < 55) { y += 500; yy += 500; }
-						} else {
-							indice++; this.ejecutar();
-						}
+							if (y < 55) { y = 55; yy = 55; registrarChoque(); }
+						} else { indice++; this.ejecutar(); }
 					}
 					if (abajo) {
 						if (y < yy) {
 							y += velocidad;
-							if (y > 505) { y -= 500; yy -= 500; }
-						} else {
-							indice++; this.ejecutar();
-						}
+							if (y > 505) { y = 505; yy = 505; registrarChoque(); }
+						} else { indice++; this.ejecutar(); }
 					}
 					if (izquierda) {
 						if (x > xx) {
 							x -= velocidad;
-							if (x < 55) { x += 500; xx += 500; }
-						} else {
-							indice++; this.ejecutar();
-						}
+							if (x < 55) { x = 55; xx = 55; registrarChoque(); }
+						} else { indice++; this.ejecutar(); }
 					}
 					if (derecha) {
 						if (x < xx) {
 							x += velocidad;
-							if (x > 505) { x -= 500; xx -= 500; }
-						} else {
-							indice++; this.ejecutar();
-						}
+							if (x > 505) { x = 505; xx = 505; registrarChoque(); }
+						} else { indice++; this.ejecutar(); }
 					}
 			}
 
-			// VERIFICADOR DE COLISIONES: Revisa si la nave "pisó" a un alien
 			verificarRecoleccion();
+		}
+	}
+
+	// --- NUEVO MÉTODO: Qué hacer cuando choca ---
+	private void registrarChoque() {
+		this.chocado = true;
+		this.iniciar = false;
+		if (consolaUI != null) {
+			consolaUI.setText("Chocaste");
 		}
 	}
 
@@ -198,7 +190,6 @@ public class Fondo extends ComponentesJuego {
 				int alienX = 55 + (a.col * 50);
 				int alienY = 55 + (a.row * 50);
 
-				// Si la distancia entre la nave y el alien es muy pequeña, lo recolecta
 				if(Math.abs(x - alienX) < 20 && Math.abs(y - alienY) < 20) {
 					a.recolectado = true;
 				}
@@ -207,7 +198,7 @@ public class Fondo extends ComponentesJuego {
 	}
 
 	private void ejecutar() {
-		if (indice < comandos.size()) {
+		if (indice < comandos.size() && !chocado) {
 			Comando c = comandos.get(indice);
 
 			switch (c.getAccion()) {
@@ -243,11 +234,18 @@ public class Fondo extends ComponentesJuego {
 					break;
 
 				case "inicioY":
-					int inicioRealX = tempXx % 10;
-					int inicioRealY = c.getValor() % 10;
+					// Quitamos el módulo (%) para que no sea cíclico.
+					int inicioX = tempXx;
+					int inicioY = c.getValor();
 
-					xx = 55 + (ancho + 10) * inicioRealX;
-					yy = 55 + (alto + 10) * inicioRealY;
+					// Si intenta iniciar fuera del tablero (ej. inicio 15 2), choca inmediatamente
+					if(inicioX < 0 || inicioX > 9 || inicioY < 0 || inicioY > 9) {
+						registrarChoque();
+						return; // Detiene la ejecución
+					}
+
+					xx = 55 + (ancho + 10) * inicioX;
+					yy = 55 + (alto + 10) * inicioY;
 
 					x = xx;
 					y = yy;
@@ -275,13 +273,34 @@ public class Fondo extends ComponentesJuego {
 			}
 
 		} else {
+			// --- RUTINA DE FIN DE JUEGO ---
 			this.iniciar = false;
 			this.indice = 0;
+
+			if (!chocado) {
+				// Si no chocó, verificamos si agarró todos los aliens
+				boolean todosRecolectados = true;
+				for(Alien a : aliens) {
+					if (!a.recolectado) {
+						todosRecolectados = false;
+					}
+				}
+
+				if (consolaUI != null) {
+					if (todosRecolectados) {
+						consolaUI.setText("Lograste llegar a todos los puntos");
+					} else {
+						consolaUI.setText("Vuelve a intentarlo");
+					}
+				}
+			}
 		}
 	}
 
 	private void iniciar() {
 		this.mostrarNave = false;
+		this.chocado = false; // Reiniciamos el choque
+
 		x = 55;
 		y = 55;
 		xx = 55;
@@ -292,10 +311,12 @@ public class Fondo extends ComponentesJuego {
 		comando = "";
 		arriba = false; abajo = false; derecha = true; izquierda = false;
 
-		// Si el usuario vuelve a presionar "Ejecutar", revivimos a los aliens
-		// para que pueda volver a intentar la misma ruta
 		for(Alien a : aliens) {
 			a.recolectado = false;
+		}
+
+		if (consolaUI != null) {
+			consolaUI.setText("Despegando... Analizando ruta.");
 		}
 	}
 
